@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { authService } from '@/services/AuthService';
 import type { LessonMasteryLevel, ZeroLevelLesson } from '@/types/lesson';
+import type { DbLessonProgress } from '@/types/database';
 
 const STORAGE_KEY = '@talkfrog/zero_level_progress_v1';
 
@@ -20,6 +23,46 @@ const listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((fn) => fn());
+}
+
+function mergeRemoteProgress(rows: DbLessonProgress[]): void {
+  for (const row of rows) {
+    const idx = lessons.findIndex((l) => l.id === row.lesson_id);
+    if (idx >= 0) {
+      lessons[idx] = {
+        ...lessons[idx],
+        masteryLevel: row.mastery_level,
+        aiScorePercent: row.ai_score_percent,
+      };
+    }
+  }
+}
+
+async function pullFromSupabase(userId: string): Promise<void> {
+  if (!supabase || !isSupabaseConfigured) return;
+  const { data, error } = await supabase.from('lesson_progress').select('*').eq('user_id', userId);
+  if (error || !data?.length) return;
+  mergeRemoteProgress(data as DbLessonProgress[]);
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
+}
+
+async function pushToSupabase(
+  userId: string,
+  lessonId: string,
+  masteryLevel: LessonMasteryLevel,
+  aiScorePercent: number,
+): Promise<void> {
+  if (!supabase || !isSupabaseConfigured) return;
+  await supabase.from('lesson_progress').upsert(
+    {
+      user_id: userId,
+      lesson_id: lessonId,
+      mastery_level: masteryLevel,
+      ai_score_percent: aiScorePercent,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,lesson_id' },
+  );
 }
 
 export const SCORE_BY_MASTERY: Record<LessonMasteryLevel, number> = {
@@ -47,14 +90,17 @@ export const lessonsProgressService = {
     if (hydrated) return this.getLessons();
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        lessons = JSON.parse(raw) as ZeroLevelLesson[];
-      } else {
-        lessons = [...DEFAULT_LESSONS];
-      }
+      lessons = raw ? (JSON.parse(raw) as ZeroLevelLesson[]) : [...DEFAULT_LESSONS];
     } catch {
       lessons = [...DEFAULT_LESSONS];
     }
+
+    await authService.hydrate();
+    const userId = authService.getRemoteUserId();
+    if (userId) {
+      await pullFromSupabase(userId);
+    }
+
     hydrated = true;
     notify();
     return this.getLessons();
@@ -74,6 +120,12 @@ export const lessonsProgressService = {
     const score = aiScorePercent ?? SCORE_BY_MASTERY[masteryLevel];
     lessons[idx] = { ...lessons[idx], masteryLevel, aiScorePercent: score };
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
+
+    const userId = authService.getRemoteUserId();
+    if (userId) {
+      await pushToSupabase(userId, lessonId, masteryLevel, score);
+    }
+
     notify();
     return { ...lessons[idx] };
   },

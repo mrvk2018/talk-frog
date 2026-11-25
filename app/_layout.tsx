@@ -11,7 +11,9 @@ function NavigationGuard({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const unsubAuth = authService.initAuthListener();
     authService.hydrate().finally(() => setReady(true));
+    return () => unsubAuth?.();
   }, []);
 
   useEffect(() => {

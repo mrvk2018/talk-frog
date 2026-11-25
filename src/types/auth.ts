@@ -25,6 +25,9 @@ export type UserProfile = {
   consents: LegalConsents;
   microphonePermissionAskedAt: string | null;
   microphoneDeferred: boolean;
+  /** true — id из Supabase Auth; false — локальный резерв */
+  usesRemoteAuth: boolean;
+  email?: string | null;
 };
 
 export type AuthState = {

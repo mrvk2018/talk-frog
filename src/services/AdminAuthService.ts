@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ADMIN_DEMO_LOGIN, ADMIN_DEMO_PASSWORD } from '@/config/admin';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '@/utils/secureStorage';
 
 const PIN_HASH_KEY = '@talkfrog/admin_pin_hash';
@@ -45,9 +46,15 @@ export const adminAuthService = {
   },
 
   async verifyCredentials(login: string, password: string): Promise<boolean> {
-    /**
-     * TODO: Supabase RPC validate_admin_credentials
-     */
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.rpc('verify_admin_login', {
+        p_login: login.trim(),
+        p_password: password,
+      });
+      if (!error && data === true) {
+        return true;
+      }
+    }
     return login.trim() === ADMIN_DEMO_LOGIN && password === ADMIN_DEMO_PASSWORD;
   },
 

@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { EmailAuthModal } from '@/components/auth/EmailAuthModal';
 import { FloatingButton } from '@/components/ui/FloatingButton';
 import { LegalDocModal } from '@/components/ui/LegalDocModal';
 import { authService } from '@/services/AuthService';
@@ -61,6 +62,8 @@ export default function OnboardingScreen() {
   const [modal, setModal] = useState<'terms' | 'voice' | null>(null);
   const [micStep, setMicStep] = useState(false);
   const [micStatus, setMicStatus] = useState<string>('');
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   const canSignIn = termsChecked && voiceChecked;
 
@@ -86,15 +89,34 @@ export default function OnboardingScreen() {
     router.replace('/');
   };
 
-  const handleSignIn = async (provider: AuthProvider) => {
-    if (!canSignIn) return;
-    await authService.signInDemo(provider);
+  const proceedAfterAuth = async () => {
     setMicStep(true);
     const snap = await permissionsService.checkAll();
     if (snap.microphone === 'granted') {
       await authService.setMicrophoneStep(true, false);
       finishOnboarding();
     }
+  };
+
+  const handleSignIn = async (provider: AuthProvider) => {
+    if (!canSignIn) return;
+    if (provider === 'email') {
+      setEmailModalOpen(true);
+      return;
+    }
+    try {
+      setAuthError('');
+      await authService.signInWithProvider(provider);
+      await proceedAfterAuth();
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'Ошибка входа');
+    }
+  };
+
+  const handleEmailAuth = async (payload: { email: string; password: string; isSignUp: boolean }) => {
+    setAuthError('');
+    await authService.signInWithProvider('email', payload);
+    await proceedAfterAuth();
   };
 
   const requestMic = async () => {
@@ -120,6 +142,13 @@ export default function OnboardingScreen() {
         Добро пожаловать! Эли и Влад проведут вас от нуля до уверенного английского — шаг за шагом, с заботой о
         произношении.
       </Text>
+      {!authService.isUsingSupabase() ? (
+        <Text style={styles.offlineNote}>
+          Supabase не настроен: вход сохраняется локально. Заполните EXPO_PUBLIC_SUPABASE_URL и ANON_KEY в .env.
+        </Text>
+      ) : (
+        <Text style={styles.offlineNote}>Облако TalkFrog подключено — прогресс синхронизируется с Supabase.</Text>
+      )}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Юридические согласия</Text>
@@ -159,6 +188,7 @@ export default function OnboardingScreen() {
           {!canSignIn ? (
             <Text style={styles.hint}>Отметьте оба согласия, чтобы продолжить.</Text>
           ) : null}
+          {authError ? <Text style={styles.authError}>{authError}</Text> : null}
         </View>
       ) : (
         <View style={styles.card}>
@@ -180,6 +210,7 @@ export default function OnboardingScreen() {
         onClose={() => setModal(null)}
       />
       <LegalDocModal visible={modal === 'voice'} title="Голосовые данные" body={VOICE_TEXT} onClose={() => setModal(null)} />
+      <EmailAuthModal visible={emailModalOpen} onClose={() => setEmailModalOpen(false)} onSubmit={handleEmailAuth} />
     </ScrollView>
   );
 }
@@ -204,6 +235,18 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: colors.textPrimary,
     fontWeight: '500',
+  },
+  offlineNote: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  authError: {
+    fontSize: 13,
+    color: '#C62828',
+    textAlign: 'center',
+    fontWeight: '600',
   },
   card: {
     backgroundColor: colors.backgroundAlt,
