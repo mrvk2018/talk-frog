@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { authService } from '@/services/AuthService';
 import type { LessonMasteryLevel, ZeroLevelLesson } from '@/types/lesson';
 import type { DbLessonProgress } from '@/types/database';
@@ -39,6 +39,7 @@ function mergeRemoteProgress(rows: DbLessonProgress[]): void {
 }
 
 async function pullFromSupabase(userId: string): Promise<void> {
+  const supabase = getSupabaseClient();
   if (!supabase || !isSupabaseConfigured) return;
   const { data, error } = await supabase.from('lesson_progress').select('*').eq('user_id', userId);
   if (error || !data?.length) return;
@@ -52,6 +53,7 @@ async function pushToSupabase(
   masteryLevel: LessonMasteryLevel,
   aiScorePercent: number,
 ): Promise<void> {
+  const supabase = getSupabaseClient();
   if (!supabase || !isSupabaseConfigured) return;
   await supabase.from('lesson_progress').upsert(
     {

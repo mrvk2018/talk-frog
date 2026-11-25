@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session, User } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import {
   AuthProvider,
   LEGAL_VERSION,
@@ -61,6 +61,7 @@ function mapDbToProfile(row: DbProfile): UserProfile {
 }
 
 async function fetchDbProfile(userId: string): Promise<UserProfile | null> {
+  const supabase = getSupabaseClient();
   if (!supabase) return null;
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   if (error || !data) return null;
@@ -68,6 +69,7 @@ async function fetchDbProfile(userId: string): Promise<UserProfile | null> {
 }
 
 async function syncConsentsToDb(userId: string, consents: LegalConsents, provider: AuthProvider, displayName: string) {
+  const supabase = getSupabaseClient();
   if (!supabase) return;
   await supabase
     .from('profiles')
@@ -186,6 +188,7 @@ export const authService = {
       cachedProfile = null;
     }
 
+    const supabase = getSupabaseClient();
     if (supabase) {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
@@ -199,6 +202,7 @@ export const authService = {
   },
 
   initAuthListener(): (() => void) | undefined {
+    const supabase = getSupabaseClient();
     if (!supabase) return undefined;
     const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
@@ -275,6 +279,7 @@ export const authService = {
       throw new Error('Сначала примите соглашения.');
     }
 
+    const supabase = getSupabaseClient();
     if (!isSupabaseConfigured || !supabase) {
       return signInLocalFallback(provider, options?.email);
     }
@@ -359,6 +364,7 @@ export const authService = {
   },
 
   async signOut(): Promise<void> {
+    const supabase = getSupabaseClient();
     if (supabase) {
       await supabase.auth.signOut();
     }
@@ -368,6 +374,7 @@ export const authService = {
 
   async deleteAccountAndResetOnboarding(): Promise<void> {
     const userId = this.getRemoteUserId();
+    const supabase = getSupabaseClient();
     if (supabase && userId && isRemoteUserId(userId)) {
       const { error } = await supabase.rpc('delete_own_account');
       if (error) {
