@@ -203,8 +203,18 @@ export default function ZeroLevelScreen() {
                   </Text>
                 ) : (
                   <>
+                    <FloatingButton
+                      title="Начать урок →"
+                      tone="green"
+                      onPress={() => {
+                        const id = selectedLesson.id;
+                        setSelectedLesson(null);
+                        router.push(`/lesson/${id}`);
+                      }}
+                      style={styles.fullWidthBtn}
+                    />
                     <Text style={styles.previewText}>
-                      Предпросмотр урока (без Gemini). Симулируйте оценку ИИ — цвет кувшинки обновится на сетке.
+                      Или быстро симулируйте оценку ИИ — цвет кувшинки обновится на сетке.
                     </Text>
                     {(() => {
                       const content = appSettingsService.getLessonContentById(selectedLesson.id);
@@ -366,6 +376,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.blueDark,
     fontWeight: '600',
+  },
+  fullWidthBtn: {
+    width: '100%',
   },
   previewText: {
     fontSize: 14,
