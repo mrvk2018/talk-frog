@@ -102,3 +102,20 @@ export const theme = {
 export type Theme = typeof theme;
 
 export type MasteryLevel = 'locked' | 'new' | 'learning' | 'good' | 'mastered';
+
+export type LessonMasteryLevel = 'not_started' | 'learning' | 'good' | 'mastered';
+
+export function getLessonMasteryColors(level: LessonMasteryLevel): { fill: string; stroke: string } {
+  switch (level) {
+    case 'not_started':
+      return { fill: colors.mastery.new, stroke: colors.mastery.newBorder };
+    case 'learning':
+      return { fill: colors.mastery.learning, stroke: colors.mastery.learningBorder };
+    case 'good':
+      return { fill: colors.mastery.good, stroke: colors.mastery.goodBorder };
+    case 'mastered':
+      return { fill: colors.mastery.mastered, stroke: colors.mastery.masteredBorder };
+    default:
+      return { fill: colors.mastery.new, stroke: colors.mastery.newBorder };
+  }
+}
