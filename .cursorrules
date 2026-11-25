@@ -1,0 +1,17 @@
+# TalkFrog — корневые правила для Cursor
+
+См. детали: `.cursor/rules/project-rules.mdc` (alwaysApply).
+
+## Кратко
+
+- Expo + TypeScript + Expo Router + Web (react-native-web).
+- Supabase backend; Gemini 3.8 только на сервере.
+- UI: фон #E8ECEF/#EAECEF; зелёный/голубой/чёрный; кнопки с тенью и border темнее на 1–2 тона.
+- Интерфейс на русском; английский контент C1–C2.
+- Без API-ключей в клиенте; комплаенс — `docs/LEGAL_COMPLIANCE.md`, план — `docs/PROJECT_PLAN.md`.
+
+## Директории
+
+`src/theme`, `src/components/ui`, `src/services`, `src/features`, `src/types`, `assets/images`.
+
+При добавлении экранов — токены темы и единый стиль кнопок из `src/theme/theme.ts`.
