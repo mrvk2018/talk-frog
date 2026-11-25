@@ -3,19 +3,13 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PinPad } from '@/components/admin/PinPad';
 import { SecureTextField } from '@/components/admin/SecureTextField';
+import { AdminWorkspace } from '@/components/admin/AdminWorkspace';
 import { FloatingButton } from '@/components/ui/FloatingButton';
 import { ADMIN_DEMO_LOGIN } from '@/config/admin';
 import { adminAuthService } from '@/services/AdminAuthService';
-import { colors, floatingShadow, radii, spacing } from '@/theme/theme';
+import { colors, radii, spacing } from '@/theme/theme';
 
 type AdminMode = 'loading' | 'login' | 'create_pin' | 'confirm_pin' | 'pin' | 'dashboard';
-
-const SECTIONS = [
-  'Промпты ИИ-учителя (Gemini 3.8)',
-  'Настройка произношения (Порог Левенштейна %)',
-  'Управление уроками и объявлениями',
-  'Пользователи и тарифы',
-] as const;
 
 const MAX_PIN_ATTEMPTS = 5;
 
@@ -47,6 +41,7 @@ export default function AdminScreen() {
       setLoginError('Неверный логин или пароль.');
       return;
     }
+    await adminAuthService.setVerifiedAdminLogin(login);
     setPin('');
     setPinConfirm('');
     setMode('create_pin');
@@ -177,13 +172,8 @@ export default function AdminScreen() {
 
       {mode === 'dashboard' ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Рабочее пространство</Text>
-          {SECTIONS.map((title) => (
-            <View key={title} style={[styles.sectionCard, floatingShadow]}>
-              <Text style={styles.sectionTitle}>{title}</Text>
-              <Text style={styles.sectionHint}>Контент раздела — на следующих шагах</Text>
-            </View>
-          ))}
+          <Text style={styles.cardTitle}>Рабочее пространство Эли и Влад</Text>
+          <AdminWorkspace />
           <FloatingButton title="Выйти из админки" tone="blue" onPress={signOut} />
           <FloatingButton title="На главную" tone="green" onPress={() => router.replace('/')} />
         </View>

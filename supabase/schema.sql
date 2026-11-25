@@ -117,8 +117,43 @@ INSERT INTO public.app_settings (key, value) VALUES
   ('levenshtein_pass_threshold', '75'),
   ('home_announcement_text', 'Открыт набор на нулевой поток: первые 8 уроков бесплатно для гостей с лимитами.'),
   ('home_announcement_active', 'true'),
-  ('welcome_video_url', '')
+  ('welcome_video_url', ''),
+  ('zero_level_readme_text', 'Как проходить «Нулевой уровень» (Эли и Влад): короткие сессии, говорите вслух, смотрите на цвет кувшинки.'),
+  ('lessons_content_json', '[]')
 ON CONFLICT (key) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.save_app_setting(p_admin_login text, p_key text, p_value text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  admin_count integer;
+BEGIN
+  IF p_key IS NULL OR length(trim(p_key)) = 0 THEN
+    RETURN false;
+  END IF;
+
+  SELECT count(*)::integer INTO admin_count FROM public.admin_credentials;
+
+  IF admin_count > 0 THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.admin_credentials WHERE login = trim(p_admin_login)
+    ) THEN
+      RETURN false;
+    END IF;
+  END IF;
+
+  INSERT INTO public.app_settings (key, value)
+  VALUES (p_key, p_value)
+  ON CONFLICT (key) DO UPDATE
+    SET value = EXCLUDED.value,
+        updated_at = now();
+
+  RETURN true;
+END;
+$$;
 
 -- ---------------------------------------------------------------------------
 -- admin_credentials + verify_admin_login
@@ -252,6 +287,7 @@ GRANT INSERT, UPDATE, DELETE ON public.app_settings TO authenticated;
 
 GRANT EXECUTE ON FUNCTION public.verify_admin_login(text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_own_account() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.save_app_setting(text, text, text) TO anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Первая учётка админов (раскомментируйте и задайте свой пароль)

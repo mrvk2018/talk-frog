@@ -6,11 +6,13 @@ import { deleteSecureItem, getSecureItem, setSecureItem } from '@/utils/secureSt
 
 const PIN_HASH_KEY = '@talkfrog/admin_pin_hash';
 const PIN_ATTEMPTS_KEY = '@talkfrog/admin_pin_attempts';
+const ADMIN_LOGIN_KEY = '@talkfrog/admin_login_session';
 const MAX_PIN_ATTEMPTS = 5;
 
 let pinHash: string | null = null;
 let pinAttempts = 0;
 let sessionUnlocked = false;
+let verifiedAdminLogin: string | null = null;
 let hydrated = false;
 
 async function hashPin(pin: string): Promise<string> {
@@ -34,9 +36,19 @@ export const adminAuthService = {
     return pinAttempts;
   },
 
+  getVerifiedAdminLogin(): string | null {
+    return verifiedAdminLogin;
+  },
+
+  async setVerifiedAdminLogin(login: string): Promise<void> {
+    verifiedAdminLogin = login.trim();
+    await AsyncStorage.setItem(ADMIN_LOGIN_KEY, verifiedAdminLogin);
+  },
+
   async hydrate(): Promise<void> {
     if (hydrated) return;
     pinHash = await getSecureItem(PIN_HASH_KEY);
+    verifiedAdminLogin = await AsyncStorage.getItem(ADMIN_LOGIN_KEY);
     const attemptsRaw = await AsyncStorage.getItem(PIN_ATTEMPTS_KEY);
     pinAttempts = attemptsRaw ? Number(attemptsRaw) : 0;
     if (pinAttempts >= MAX_PIN_ATTEMPTS) {
@@ -99,6 +111,8 @@ export const adminAuthService = {
 
   signOut(): void {
     sessionUnlocked = false;
+    verifiedAdminLogin = null;
+    AsyncStorage.removeItem(ADMIN_LOGIN_KEY);
   },
 
   initialRoute(): 'login' | 'pin' | 'dashboard' {

@@ -12,21 +12,14 @@ import { FloatingButton } from '@/components/ui/FloatingButton';
 import { LilypadButton } from '@/components/ui/LilypadButton';
 import { authService } from '@/services/AuthService';
 import { billingService, type BillingPlan, type BillingPlanId } from '@/services/BillingService';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { appSettingsService } from '@/services/AppSettingsService';
 import { lessonsProgressService, SCORE_BY_MASTERY } from '@/services/LessonsProgressService';
 import type { LessonMasteryLevel, ZeroLevelLesson } from '@/types/lesson';
 import { colors, radii, spacing } from '@/theme/theme';
 
 const LEFT_IDS = ['z1', 'z3', 'z5', 'z7'];
 const RIGHT_IDS = ['z2', 'z4', 'z6', 'z8'];
-
-const READ_ME = `Как проходить «Нулевой уровень» (Эли и Влад)
-
-1. Выберите кувшинку-урок сверху вниз, но в своём темпе.
-2. Проговаривайте вслух — TalkFrog слушает микрофон и помогает с произношением.
-3. Цвет листа показывает, насколько материал усвоен: от голубого «старт» до насыщенного зелёного «отлично».
-4. Гости проходят первые уроки с лимитами; полный доступ — в тарифах.
-
-Главное — короткие сессии и радость от маленьких побед. Мы рядом!`;
 
 const AI_SIM_LABELS: { label: string; level: LessonMasteryLevel }[] = [
   { label: 'Не пройдено', level: 'not_started' },
@@ -44,6 +37,8 @@ export default function ZeroLevelScreen() {
   const [subscriptionLabel, setSubscriptionLabel] = useState('');
   const [selectedLesson, setSelectedLesson] = useState<ZeroLevelLesson | null>(null);
   const [restoreMsg, setRestoreMsg] = useState('');
+  const { settings } = useAppSettings();
+  const readmeText = settings.zero_level_readme_text.trim() || appSettingsService.get('zero_level_readme_text');
 
   const refreshLessons = useCallback(() => {
     setLessons(lessonsProgressService.getLessons());
@@ -149,7 +144,7 @@ export default function ZeroLevelScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Прочти меня</Text>
             <ScrollView style={styles.modalScroll}>
-              <Text style={styles.modalBody}>{READ_ME}</Text>
+              <Text style={styles.modalBody}>{readmeText}</Text>
             </ScrollView>
             <FloatingButton title="Понятно" tone="green" onPress={() => setReadOpen(false)} />
           </View>
@@ -211,6 +206,20 @@ export default function ZeroLevelScreen() {
                     <Text style={styles.previewText}>
                       Предпросмотр урока (без Gemini). Симулируйте оценку ИИ — цвет кувшинки обновится на сетке.
                     </Text>
+                    {(() => {
+                      const content = appSettingsService.getLessonContentById(selectedLesson.id);
+                      if (!content) return null;
+                      return (
+                        <View style={styles.contentBox}>
+                          <Text style={styles.contentLabel}>Фразы:</Text>
+                          <Text style={styles.contentText}>{content.targetPhrases.join(' · ')}</Text>
+                          <Text style={styles.contentLabel}>Подсказка:</Text>
+                          <Text style={styles.contentText}>{content.phoneticHint}</Text>
+                          <Text style={styles.contentLabel}>Методика:</Text>
+                          <Text style={styles.contentText}>{content.methodologyNoteRu}</Text>
+                        </View>
+                      );
+                    })()}
                     <Text style={styles.score}>
                       Текущий балл: {selectedLesson.aiScorePercent}% ({selectedLesson.masteryLevel})
                     </Text>
@@ -373,6 +382,25 @@ const styles = StyleSheet.create({
   },
   simBtn: {
     width: '100%',
+  },
+  contentBox: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: '#D0D8DE',
+    backgroundColor: colors.background,
+  },
+  contentLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  contentText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   lockHint: {
     fontSize: 14,

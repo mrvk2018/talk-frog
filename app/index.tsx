@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Video, ResizeMode } from 'expo-av';
 import {
   Dimensions,
   Modal,
@@ -11,7 +12,9 @@ import {
 import { useRouter } from 'expo-router';
 import { AnnouncementBanner } from '@/components/ui/AnnouncementBanner';
 import { FloatingButton } from '@/components/ui/FloatingButton';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAuth } from '@/hooks/useAuth';
+import { appSettingsService } from '@/services/AppSettingsService';
 import { useLogoAdminEasterEgg } from '@/hooks/useLogoAdminEasterEgg';
 import { authService } from '@/services/AuthService';
 import { colors, radii, spacing } from '@/theme/theme';
@@ -22,6 +25,11 @@ const { height: WINDOW_HEIGHT } = Dimensions.get('window');
 export default function HomeScreen() {
   const router = useRouter();
   const { statusLabel } = useAuth();
+  const { settings } = useAppSettings();
+  const showAnnouncement =
+    settings.home_announcement_active === 'true' && settings.home_announcement_text.trim().length > 0;
+  const videoUrl = settings.welcome_video_url.trim();
+  const hasVideo = /^https?:\/\//i.test(videoUrl);
   const { onLogoPress } = useLogoAdminEasterEgg();
   const [videoOpen, setVideoOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -72,10 +80,9 @@ export default function HomeScreen() {
             Короткие уроки, живое произношение и ИИ-преподаватель, который подстраивается под ваш темп. Начните с
             «Нулевого уровня» — это главный путь Эли и Влада.
           </Text>
-          <AnnouncementBanner
-            title="Важно"
-            message="Открыт набор на нулевой поток: первые 8 уроков бесплатно для гостей с лимитами. Подробности в Тарифах."
-          />
+          {showAnnouncement ? (
+            <AnnouncementBanner title="Важно" message={settings.home_announcement_text.trim()} />
+          ) : null}
         </View>
 
         <View style={[styles.heroZone, { minHeight: WINDOW_HEIGHT * 0.36 }]}>
@@ -116,10 +123,21 @@ export default function HomeScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.videoModal}>
             <Text style={styles.modalTitle}>Приветствие от преподавателей</Text>
-            <View style={styles.videoPlaceholder}>
-              <Text style={styles.videoPlaceholderText}>Видео Эли и Влада (заглушка)</Text>
-              <Text style={styles.videoSub}>Здесь будет короткое встроенное приветствие</Text>
-            </View>
+            {hasVideo ? (
+              <Video
+                source={{ uri: videoUrl }}
+                style={styles.videoPlayer}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+              />
+            ) : (
+              <View style={styles.videoPlaceholder}>
+                <Text style={styles.videoPlaceholderText}>Видео Эли и Влада</Text>
+                <Text style={styles.videoSub}>
+                  Задайте ссылку welcome_video_url в админке — превью появится здесь.
+                </Text>
+              </View>
+            )}
             <FloatingButton title="Закрыть" tone="blue" onPress={() => setVideoOpen(false)} />
           </View>
         </View>
@@ -273,6 +291,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  videoPlayer: {
+    width: '100%',
+    height: 200,
+    borderRadius: radii.lg,
+    backgroundColor: colors.black,
   },
   videoPlaceholder: {
     height: 180,
