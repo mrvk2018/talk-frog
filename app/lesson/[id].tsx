@@ -20,22 +20,20 @@ import type { LessonMasteryLevel } from '@/types/lesson';
 import type { SpeechRecognitionStatus } from '@/types/speech';
 import { calculatePronunciationScore, type PronunciationScore } from '@/utils/levenshtein';
 import { colors, floatingShadow, getLessonMasteryColors, radii, spacing } from '@/theme/theme';
+import { InteractiveLessonPlayer } from '@/components/lesson/InteractiveLessonPlayer';
+import { resolveZeroLevelInteractiveLesson } from '@/data/zeroLevelLessonsContent';
 
-export default function LessonScreen() {
+function LegacyLessonScreen({
+  lesson,
+  content,
+  passThreshold,
+}: {
+  lesson: NonNullable<ReturnType<typeof lessonsProgressService.getLessonById>>;
+  content: ReturnType<typeof appSettingsService.getLessonContentById>;
+  passThreshold: number;
+}) {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const lessonId = Array.isArray(id) ? id[0] : id;
-
-  const { settings } = useAppSettings();
-  const passThreshold = appSettingsService.getThresholdPercent();
-
-  const lesson = useMemo(() => lessonsProgressService.getLessonById(lessonId ?? ''), [lessonId]);
-  const content = useMemo(
-    () => (lessonId ? appSettingsService.getLessonContentById(lessonId) : undefined),
-    [lessonId, settings.lessons_content_json],
-  );
-
-  const phrases = content?.targetPhrases ?? [lesson?.title ?? 'Hello'];
+  const phrases = content?.targetPhrases ?? [lesson.title ?? 'Hello'];
   const [phraseIndex, setPhraseIndex] = useState(0);
   const activePhrase = phrases[phraseIndex] ?? phrases[0];
 
@@ -45,11 +43,6 @@ export default function LessonScreen() {
   const [speechStatus, setSpeechStatus] = useState<SpeechRecognitionStatus>('idle');
   const [loadingTutor, setLoadingTutor] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    lessonsProgressService.hydrate();
-    appSettingsService.hydrate();
-  }, []);
 
   useEffect(() => {
     const unsub = speechRecognitionService.subscribe((status, msg) => {
@@ -81,7 +74,6 @@ export default function LessonScreen() {
   };
 
   const onSaveAndExit = async () => {
-    if (!lesson) return;
     setSaving(true);
     const mastery: LessonMasteryLevel =
       tutor?.recommendedMastery ??
@@ -91,15 +83,6 @@ export default function LessonScreen() {
     setSaving(false);
     router.replace('/zero-level');
   };
-
-  if (!lesson) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Урок не найден.</Text>
-        <FloatingButton title="← К кувшинкам" tone="blue" onPress={() => router.replace('/zero-level')} />
-      </View>
-    );
-  }
 
   const masteryColor = getLessonMasteryColors(
     tutor?.recommendedMastery ?? (score?.isPassed ? 'good' : 'learning'),
@@ -191,6 +174,52 @@ export default function LessonScreen() {
       />
     </ScrollView>
   );
+}
+
+export default function LessonScreen() {
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const lessonId = Array.isArray(id) ? id[0] : id ?? '';
+
+  const { settings } = useAppSettings();
+  const passThreshold = appSettingsService.getThresholdPercent();
+
+  const lesson = useMemo(() => lessonsProgressService.getLessonById(lessonId), [lessonId]);
+  const content = useMemo(
+    () => (lessonId ? appSettingsService.getLessonContentById(lessonId) : undefined),
+    [lessonId, settings.lessons_content_json],
+  );
+  const interactiveLesson = useMemo(
+    () => (lessonId ? resolveZeroLevelInteractiveLesson(lessonId) : undefined),
+    [lessonId],
+  );
+
+  useEffect(() => {
+    lessonsProgressService.hydrate();
+    appSettingsService.hydrate();
+  }, []);
+
+  if (!lesson) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.error}>Урок не найден.</Text>
+        <FloatingButton title="← К кувшинкам" tone="green" onPress={() => router.replace('/zero-level')} />
+      </View>
+    );
+  }
+
+  if (interactiveLesson) {
+    return (
+      <InteractiveLessonPlayer
+        lesson={interactiveLesson}
+        progressLesson={lesson}
+        passThreshold={passThreshold}
+        onExit={() => router.replace('/zero-level')}
+      />
+    );
+  }
+
+  return <LegacyLessonScreen lesson={lesson} content={content} passThreshold={passThreshold} />;
 }
 
 const styles = StyleSheet.create({
