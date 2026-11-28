@@ -12,6 +12,7 @@ import { Lesson3LetterBuild } from './Lesson3LetterBuild';
 import { Lesson3TeacherRule } from './Lesson3TeacherRule';
 import { Lesson3WordCard } from './Lesson3WordCard';
 import { shuffleArray } from './lesson3Utils';
+import { lesson3IllustrationFrame } from './lesson3ImageStyles';
 
 export function Lesson3TheoryStep({
   content,
@@ -137,15 +138,24 @@ export function Lesson3ImagePhraseStep({
   return (
     <View style={lessonCard.card}>
       <Text style={lessonCard.title}>{titleRu}</Text>
-      <View style={styles.cardRow}>
+      <View style={styles.imageMatchGrid}>
         {phrases.map((p) => (
           <Pressable
             key={`img-${p!.id}`}
             disabled={matched.has(p!.id)}
             onPress={() => setImgPick(p!.id)}
-            style={[styles.imgTile, imgPick === p!.id && styles.tileOn, matched.has(p!.id) && styles.tileOk]}
+            style={[
+              lesson3IllustrationFrame.frameGrid,
+              styles.imgTilePressable,
+              imgPick === p!.id && styles.tileOn,
+              matched.has(p!.id) && styles.tileOk,
+            ]}
           >
-            <Image source={{ uri: phraseImageUrl(content, p!.imageFile) }} style={styles.thumb} />
+            <Image
+              source={{ uri: phraseImageUrl(content, p!.imageFile) }}
+              style={lesson3IllustrationFrame.image}
+              resizeMode="contain"
+            />
           </Pressable>
         ))}
       </View>
@@ -423,6 +433,16 @@ export function Lesson3QuizStep({
 
 const styles = StyleSheet.create({
   cardRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
+  imageMatchGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'space-between',
+  },
+  imgTilePressable: {
+    borderWidth: 2,
+    borderColor: colors.greenDark,
+  },
   matchCols: { flexDirection: 'row', gap: spacing.md },
   col: { flex: 1, gap: spacing.sm },
   tile: {
@@ -435,15 +455,6 @@ const styles = StyleSheet.create({
   tileText: { fontWeight: '800', color: colors.textOnBrand, textAlign: 'center' },
   tileOk: { backgroundColor: colors.mastery.good, borderColor: colors.mastery.goodBorder },
   tileOn: { borderColor: colors.black, borderWidth: 3 },
-  imgTile: {
-    width: 100,
-    height: 100,
-    borderRadius: radii.md,
-    borderWidth: 2,
-    borderColor: colors.greenDark,
-    overflow: 'hidden',
-  },
-  thumb: { width: '100%', height: '100%' },
   audioRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   audioBtn: { minWidth: 72 },
   assignRow: { gap: spacing.xs },
