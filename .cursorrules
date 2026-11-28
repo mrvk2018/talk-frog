@@ -6,6 +6,7 @@
 
 - Expo + TypeScript + Expo Router + Web (react-native-web).
 - Supabase backend; Gemini 3.8 только на сервере.
+- Миграции SQL: `supabase/migrations/` — префиксы `001_`, `002_`, … (без дат в имени).
 - UI: фон #E8ECEF/#EAECEF; зелёный/голубой/чёрный; кнопки с тенью и border темнее на 1–2 тона.
 - Интерфейс на русском; английский контент C1–C2.
 - Без API-ключей в клиенте; комплаенс — `docs/LEGAL_COMPLIANCE.md`, план — `docs/PROJECT_PLAN.md`.

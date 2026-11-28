@@ -21,6 +21,7 @@ import type { SpeechRecognitionStatus } from '@/types/speech';
 import { calculatePronunciationScore, type PronunciationScore } from '@/utils/levenshtein';
 import { colors, floatingShadow, getLessonMasteryColors, radii, spacing } from '@/theme/theme';
 import { InteractiveLessonPlayer } from '@/components/lesson/InteractiveLessonPlayer';
+import { Lesson3Player } from '@/components/lesson3/Lesson3Player';
 import { resolveZeroLevelInteractiveLesson } from '@/data/zeroLevelLessonsContent';
 
 function LegacyLessonScreen({
@@ -190,7 +191,7 @@ export default function LessonScreen() {
     [lessonId, settings.lessons_content_json],
   );
   const interactiveLesson = useMemo(
-    () => (lessonId ? resolveZeroLevelInteractiveLesson(lessonId) : undefined),
+    () => (lessonId && lessonId !== 'z3' ? resolveZeroLevelInteractiveLesson(lessonId) : undefined),
     [lessonId],
   );
 
@@ -205,6 +206,16 @@ export default function LessonScreen() {
         <Text style={styles.error}>Урок не найден.</Text>
         <FloatingButton title="← К кувшинкам" tone="green" onPress={() => router.replace('/zero-level')} />
       </View>
+    );
+  }
+
+  if (lessonId === 'z3') {
+    return (
+      <Lesson3Player
+        progressLesson={lesson}
+        passThreshold={passThreshold}
+        onExit={() => router.replace('/zero-level')}
+      />
     );
   }
 

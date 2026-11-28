@@ -11,6 +11,7 @@ type PronunciationPracticeBlockProps = {
   expectedText: string;
   passThreshold: number;
   onScore?: (score: PronunciationScore) => void;
+  onSpokenTextChange?: (text: string) => void;
   label?: string;
 };
 
@@ -18,6 +19,7 @@ export function PronunciationPracticeBlock({
   expectedText,
   passThreshold,
   onScore,
+  onSpokenTextChange,
   label = 'Практика произношения',
 }: PronunciationPracticeBlockProps) {
   const [spokenText, setSpokenText] = useState('');
@@ -31,7 +33,10 @@ export function PronunciationPracticeBlock({
   }, []);
 
   const onListen = async () => {
-    await speechRecognitionService.startListening((text) => setSpokenText(text));
+    await speechRecognitionService.startListening((text) => {
+      setSpokenText(text);
+      onSpokenTextChange?.(text);
+    });
   };
 
   const runCheck = () => {
@@ -61,7 +66,10 @@ export function PronunciationPracticeBlock({
       {useTyping ? (
         <TextInput
           value={spokenText}
-          onChangeText={setSpokenText}
+          onChangeText={(t) => {
+            setSpokenText(t);
+            onSpokenTextChange?.(t);
+          }}
           placeholder="What you said…"
           style={lessonCard.input}
           autoCapitalize="none"

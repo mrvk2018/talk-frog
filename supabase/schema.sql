@@ -156,6 +156,68 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- lesson_structured_content (интерактивные уроки, начиная с z3)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.lesson_structured_content (
+  lesson_id text PRIMARY KEY,
+  content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by text
+);
+
+DROP TRIGGER IF EXISTS lesson_structured_content_set_updated_at ON public.lesson_structured_content;
+CREATE TRIGGER lesson_structured_content_set_updated_at
+  BEFORE UPDATE ON public.lesson_structured_content
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_updated_at();
+
+CREATE OR REPLACE FUNCTION public.save_lesson_structured_content(
+  p_admin_login text,
+  p_lesson_id text,
+  p_content jsonb
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  admin_count integer;
+BEGIN
+  IF p_lesson_id IS NULL OR length(trim(p_lesson_id)) = 0 THEN
+    RETURN false;
+  END IF;
+
+  SELECT count(*)::integer INTO admin_count FROM public.admin_credentials;
+
+  IF admin_count > 0 THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.admin_credentials WHERE login = trim(p_admin_login)
+    ) THEN
+      RETURN false;
+    END IF;
+  END IF;
+
+  INSERT INTO public.lesson_structured_content (lesson_id, content, updated_by)
+  VALUES (trim(p_lesson_id), p_content, trim(p_admin_login))
+  ON CONFLICT (lesson_id) DO UPDATE
+    SET content = EXCLUDED.content,
+        updated_by = EXCLUDED.updated_by,
+        updated_at = now();
+
+  RETURN true;
+END;
+$$;
+
+ALTER TABLE public.lesson_structured_content ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "lesson_structured_content_read_all" ON public.lesson_structured_content;
+CREATE POLICY "lesson_structured_content_read_all"
+  ON public.lesson_structured_content FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- ---------------------------------------------------------------------------
 -- admin_credentials + verify_admin_login
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.admin_credentials (
@@ -284,6 +346,9 @@ GRANT SELECT, UPDATE ON public.profiles TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.lesson_progress TO authenticated;
 GRANT SELECT ON public.app_settings TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.app_settings TO authenticated;
+
+GRANT SELECT ON public.lesson_structured_content TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.save_lesson_structured_content(text, text, jsonb) TO anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.verify_admin_login(text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_own_account() TO authenticated;

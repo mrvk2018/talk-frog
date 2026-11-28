@@ -11,11 +11,18 @@ try {
   expoSpeech = null;
 }
 
+const UK_VOICE_HINTS = [/google uk english female/i, /daniel/i, /\bkate\b/i, /uk english/i, /en-gb/i];
+
 function pickBritishVoice(): SpeechSynthesisVoice | undefined {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
   const voices = window.speechSynthesis.getVoices();
+  const ukVoices = voices.filter((v) => v.lang === 'en-GB' || v.lang.startsWith('en-GB'));
+  for (const hint of UK_VOICE_HINTS) {
+    const match = ukVoices.find((v) => hint.test(v.name));
+    if (match) return match;
+  }
   return (
-    voices.find((v) => v.lang === 'en-GB') ??
+    ukVoices[0] ??
     voices.find((v) => v.lang.startsWith('en-GB')) ??
     voices.find((v) => v.lang.startsWith('en'))
   );
@@ -65,7 +72,13 @@ export function spellOutText(text: string, options?: { rate?: number }): void {
   speakText(spelled, { rate: options?.rate ?? 0.85 });
 }
 
+/** Британская озвучка (en-GB, ~0.92). */
+export function speakBritish(text: string, options?: { rate?: number }): void {
+  speakText(text, { language: SPEECH_LOCALE_GB, rate: options?.rate ?? 0.92 });
+}
+
 export const speech = {
   speakText,
   spellOutText,
+  speakBritish,
 };

@@ -8,6 +8,8 @@ import {
   DEFAULT_LESSONS_CONTENT,
 } from '@/services/AppSettingsService';
 import type { LessonContentItem } from '@/types/appSettings';
+import { lessonStructuredContentService } from '@/services/LessonStructuredContentService';
+import { Lesson3StructuredEditor } from '@/components/admin/Lesson3StructuredEditor';
 import { colors, floatingShadow, radii, spacing } from '@/theme/theme';
 
 type SaveState = 'idle' | 'saving' | 'ok' | 'error';
@@ -34,6 +36,8 @@ export function AdminWorkspace() {
   const [readmeText, setReadmeText] = useState('');
   const [lessons, setLessons] = useState<LessonContentItem[]>(DEFAULT_LESSONS_CONTENT);
   const [lessonIdx, setLessonIdx] = useState(0);
+  const [lesson3EditorOpen, setLesson3EditorOpen] = useState(false);
+  const [lesson3Content, setLesson3Content] = useState(() => lessonStructuredContentService.getLesson3());
 
   const load = useCallback(async () => {
     await appSettingsService.hydrate();
@@ -45,6 +49,8 @@ export function AdminWorkspace() {
     setVideoUrl(s.welcome_video_url);
     setReadmeText(s.zero_level_readme_text);
     setLessons(appSettingsService.getLessonsContent());
+    await lessonStructuredContentService.hydrate();
+    setLesson3Content(lessonStructuredContentService.getLesson3());
   }, []);
 
   useEffect(() => {
@@ -208,8 +214,26 @@ export function AdminWorkspace() {
             style={styles.multiline}
           />
           <FloatingButton title="Сохранить уроки в облако" tone="green" onPress={saveLessons} />
+          {lesson.id === 'z3' ? (
+            <FloatingButton
+              title="Редактировать карточки и правила"
+              tone="blue"
+              onPress={() => setLesson3EditorOpen(true)}
+            />
+          ) : null}
         </View>
       ) : null}
+
+      <Lesson3StructuredEditor
+        visible={lesson3EditorOpen}
+        adminLogin={adminLogin}
+        initial={lesson3Content}
+        onClose={() => setLesson3EditorOpen(false)}
+        onSaved={async () => {
+          await lessonStructuredContentService.refreshFromCloud();
+          setLesson3Content(lessonStructuredContentService.getLesson3());
+        }}
+      />
     </View>
   );
 }

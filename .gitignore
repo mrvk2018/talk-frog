@@ -41,3 +41,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Очередь тяжёлых иллюстраций для Supabase (в git только .gitkeep)
+assets/upload-queue/**/*
+!assets/upload-queue/**/.gitkeep

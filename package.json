@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web",
-    "export:web:pages": "expo export --platform web && node scripts/postexport-github-pages.mjs"
+    "export:web:pages": "expo export --platform web && node scripts/postexport-github-pages.mjs",
+    "upload:assets": "node scripts/upload-lesson-assets.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~58.0.17",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "sharp": "^0.35.5",
     "typescript": "~6.0.3"
   }
 }
